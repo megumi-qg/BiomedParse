@@ -2,7 +2,7 @@
 _target_: src.model.transformer_decoder.language_encoders.seem_language_encoder.SEEMLanguageEncoder
 tokenizer:
   _target_: transformers.AutoTokenizer.from_pretrained
-  pretrained_model_name_or_path: openai/clip-vit-base-patch32
+  pretrained_model_name_or_path: /home/gaoqi/weaksam/BiomedParse/checkpoint/clip-vit-base-patch32
   use_fast: false
 tokenizer_type: clip
 encoder_transformer:

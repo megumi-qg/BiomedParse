@@ -1,0 +1,20 @@
+{
+  "ACDC": {
+    "1": [
+      "Right ventricle",
+      "Right ventricle in cardiac MR",
+      "Right ventricle (RV)"
+    ],
+    "2": [
+      "Myocardium",
+      "Myocardium in cardiac MR",
+      "Myocardial muscle"
+    ],
+    "3": [
+      "Left ventricle",
+      "Left ventricle in cardiac MR",
+      "Left ventricle (LV)"
+    ],
+    "instance_label": 0
+  }
+}
