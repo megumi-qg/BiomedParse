@@ -125,4 +125,4 @@ pretrained
 outputs
 
 data/ACDC/*
-checkpoint/*
+checkpoint/biomedparse_v2.ckpt
