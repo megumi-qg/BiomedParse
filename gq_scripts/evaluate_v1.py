@@ -46,7 +46,7 @@ BiomedParse v1 模型评估脚本（用于2D推理）
 示例：
     # 评估 CAMUS 数据集
     python gq_scripts/evaluate_v1.py --data-root data/CAMUS/test --dataset-name CAMUS --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v1.pt
-    python gq_scripts/evaluate_v1.py --data-root data/CAMUS/test --dataset-name CAMUS --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v1.pt --random-prompt --seed 42
+    python gq_scripts/evaluate_v1.py --data-root data/CAMUS/test --dataset-name CAMUS_mul --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v1.pt --random-prompt --seed 42
 
 """
 

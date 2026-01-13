@@ -11,7 +11,7 @@ BiomedParse 模型评估脚本
 - 生成详细的评估报告（包括每个样本的结果）
 
 使用方法：
-    python scripts/evaluate.py --data-root <数据目录> --dataset-name <数据集名称> --ckpt-path <检查点路径> [--output-name <输出文件名>]
+    python scripts/evaluate.py --data-root <数据目录> --dataset-name <数据集名称> --ckpt-path <检查点路径> [--output-name <输出文件名>] [--random-prompt] [--seed <随机种子>]
 
 参数说明：
     --data-root: 测试数据目录路径，包含 .npz 格式的数据文件
@@ -27,6 +27,9 @@ BiomedParse 模型评估脚本
     --output-name: 输出评估摘要的 JSON 文件名（可选）
                    如果不指定，将使用 "{dataset_name}_eval_summary.json"
                    输出文件将保存在 data/ 目录下
+    
+    --random-prompt: 启用随机 prompt 选择：每个样本的每个解剖区域都会独立地随机选择一个 prompt
+    --seed: 设置随机种子，确保结果可复现
 
 输出说明：
     脚本会生成一个 JSON 格式的评估摘要文件，包含：
@@ -40,15 +43,15 @@ BiomedParse 模型评估脚本
     - 如果数据文件中包含 spacing 信息，将计算 HD95 和 NSD 指标
     - 如果数据文件中没有 spacing 信息，HD95 和 NSD 将显示为 N/A
     - 默认情况下，如果某个类别有多个 prompt，脚本会使用第一个 prompt（所有样本使用相同的 prompt）
-    - 使用 --random-prompt 参数可以启用随机 prompt 选择：每个样本的每个解剖区域都会独立地随机选择一个 prompt
-    - 使用 --seed 参数可以设置随机种子，确保结果可复现
-
-示例：
-    # 评估 MMs2 数据集
-    python scripts/evaluate.py --data-root data/MMs2/test --dataset-name MMs2 --ckpt-path checkpoint/biomedparse_v2.ckpt
     
-    # 评估 ACDC 数据集并指定输出文件名
-    python scripts/evaluate.py --data-root data/ACDC/test --dataset-name ACDC --ckpt-path checkpoint/biomedparse_v2.ckpt --output-name ACDC_eval_summary.json
+示例：
+    CUDA_VISIBLE_DEVICES=1
+    # 评估 MMs2 数据集
+    python gq_scripts/evaluate_v2.py --data-root data/MMs2/test --dataset-name MMs2 --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt
+    
+    # 评估数据集并指定输出文件名
+    python gq_scripts/evaluate_v2.py --data-root data/ACDC/test --dataset-name ACDC --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt --output-name ACDC_eval_summary.json
+    python gq_scripts/evaluate_v2.py --data-root data/CAMUS/test --dataset-name CAMUS --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt --output-name CAMUS_eval_summary.json
     
     # 使用随机 prompt 选择（适用于有多 prompt 的数据集，如 ACDC_mul）
     # 注意：每个样本的每个解剖区域都会独立地随机选择一个 prompt
