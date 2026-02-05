@@ -5,7 +5,7 @@
     python gq_scripts/util/view.py <npz_file_path>
     
 示例:
-    python gq_scripts/util/view.py data/ACDC/test/patient101_frame01.npz
+    python gq_scripts/util/view.py gq_data/acdc/test/patient101_frame01.npz
 """
 
 import os
@@ -19,16 +19,90 @@ def print_array_info(name, arr):
     print(f"\n{name}:")
     print(f"  Shape: {arr.shape}")
     print(f"  Dtype: {arr.dtype}")
-    print(f"  Min: {np.min(arr)}")
-    print(f"  Max: {np.max(arr)}")
-    print(f"  Mean: {np.mean(arr):.4f}")
-    print(f"  Std: {np.std(arr):.4f}")
+    
+    # 如果是对象数组（object dtype），特殊处理
+    if arr.dtype == np.dtype('object'):
+        print(f"  Type: Object array (contains Python objects)")
+        
+        # 处理标量对象数组（0维数组）
+        if arr.shape == ():
+            elem = arr.item()  # 提取标量值
+            print(f"  Value type: {type(elem).__name__}")
+            if isinstance(elem, dict):
+                print(f"  Keys: {list(elem.keys())}")
+                # 打印字典的所有键值对
+                for k, v in elem.items():
+                    v_str = str(v)
+                    if len(v_str) > 100:
+                        v_str = v_str[:100] + "..."
+                    print(f"    {k}: {type(v).__name__} {v_str}")
+            elif isinstance(elem, (list, tuple)):
+                print(f"  Length: {len(elem)}")
+                if len(elem) > 0:
+                    print(f"  Elements:")
+                    for i, item in enumerate(elem[:10]):  # 最多显示10个元素
+                        item_str = str(item)
+                        if len(item_str) > 100:
+                            item_str = item_str[:100] + "..."
+                        print(f"    [{i}]: {type(item).__name__} {item_str}")
+                    if len(elem) > 10:
+                        print(f"    ... ({len(elem) - 10} more elements)")
+            elif isinstance(elem, str):
+                print(f"  Value: {elem}")
+            else:
+                elem_str = str(elem)
+                if len(elem_str) > 200:
+                    elem_str = elem_str[:200] + "..."
+                print(f"  Value: {elem_str}")
+        else:
+            # 处理多维对象数组
+            print(f"  Length: {len(arr)}")
+            # 打印前几个元素的信息
+            preview_count = min(3, len(arr))
+            for i in range(preview_count):
+                elem = arr[i]
+                print(f"  Element {i}: {type(elem).__name__}")
+                if isinstance(elem, dict):
+                    print(f"    Keys: {list(elem.keys())}")
+                    # 打印字典的前几个键值对
+                    for j, (k, v) in enumerate(list(elem.items())[:3]):
+                        print(f"      {k}: {type(v).__name__} {str(v)[:50]}")
+                    if len(elem) > 3:
+                        print(f"      ... ({len(elem) - 3} more keys)")
+                elif isinstance(elem, (list, tuple)):
+                    print(f"    Length: {len(elem)}")
+                    if len(elem) > 0:
+                        print(f"    First element: {type(elem[0]).__name__} {str(elem[0])[:50]}")
+                else:
+                    print(f"    Value preview: {str(elem)[:100]}")
+            if len(arr) > preview_count:
+                print(f"  ... ({len(arr) - preview_count} more elements)")
+        
+        # 打印内存占用
+        size_mb = arr.nbytes / (1024 * 1024)
+        print(f"  Memory size: {size_mb:.2f} MB")
+        return
+    
+    # 对于数值类型数组，计算统计信息
+    try:
+        print(f"  Min: {np.min(arr)}")
+        print(f"  Max: {np.max(arr)}")
+        print(f"  Mean: {np.mean(arr):.4f}")
+        print(f"  Std: {np.std(arr):.4f}")
+    except (TypeError, ValueError) as e:
+        print(f"  Warning: Cannot compute statistics: {e}")
     
     # 如果是整数类型，打印唯一值信息
     if np.issubdtype(arr.dtype, np.integer):
-        unique_values = np.unique(arr)
-        print(f"  Unique values: {unique_values}")
-        print(f"  Number of unique values: {len(unique_values)}")
+        try:
+            unique_values = np.unique(arr)
+            if len(unique_values) <= 256:  # 只显示前256个唯一值
+                print(f"  Unique values: {unique_values}")
+            else:
+                print(f"  Unique values: {unique_values[:256]} ... ({len(unique_values)} total)")
+            print(f"  Number of unique values: {len(unique_values)}")
+        except (TypeError, ValueError):
+            pass
     
     # 打印内存占用
     size_mb = arr.nbytes / (1024 * 1024)

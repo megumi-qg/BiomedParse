@@ -124,5 +124,5 @@ model_weights
 pretrained
 outputs
 
-data/**/*.npz
+gq_data/**/*.npz
 checkpoint/biomedparse_v2.ckpt

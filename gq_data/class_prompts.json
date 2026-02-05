@@ -4,7 +4,7 @@
       "right ventricle"
     ],
     "2": [
-      "left ventricular myocardium"
+      "myocardium"
     ],
     "3": [
       "left ventricle"
@@ -37,13 +37,13 @@
   },
   "CAMUS": {
     "1": [
-      "left ventricle"
+      "Left Ventricle"
     ],
     "2": [
-      "left ventricular myocardium"
+      "Myocardium"
     ],
     "3": [
-      "left atrium"
+      "Left Atrium"
     ],
     "instance_label": 0
   },
@@ -73,13 +73,13 @@
   },
   "MMs2": {
     "1": [
-      "left ventricle"
+      "Left ventricle cavity"
     ],
     "2": [
-      "left ventricular myocardium"
+      "Myocardium"
     ],
     "3": [
-      "right ventricle"
+      "Right ventricle cavity"
     ],
     "instance_label": 0
   },

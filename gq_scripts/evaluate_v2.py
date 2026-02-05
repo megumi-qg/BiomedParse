@@ -2,34 +2,30 @@
 BiomedParse 模型评估脚本
 
 本脚本用于评估 BiomedParse 模型在医学图像分割数据集上的性能。
-支持计算多种评估指标，包括 Dice 系数、IoU、HD95（95% Hausdorff 距离）和 NSD（归一化表面距离）。
+支持计算多种评估指标，包括 Dice 系数、IoU、HD95（95% Hausdorff 距离）和 NSD（归一化表面距离，2.0mm）。
 
 主要功能：
-- 加载预训练的 BiomedParse 模型
-- 在指定数据集上进行推理
+- 从指定文件夹读取推理结果
 - 计算每个类别和整体的评估指标
 - 生成详细的评估报告（包括每个样本的结果）
 
 使用方法：
-    python scripts/evaluate.py --data-root <数据目录> --dataset-name <数据集名称> --ckpt-path <检查点路径> [--output-name <输出文件名>] [--random-prompt] [--seed <随机种子>]
+    python gq_scripts/evaluate_v2.py --data-root <数据目录> --dataset-name <数据集名称> --inference-dir <推理结果目录> [--output-name <输出文件名>]
 
 参数说明：
-    --data-root: 测试数据目录路径，包含 .npz 格式的数据文件
+    --data-root: 测试数据目录路径，包含 .npz 格式的数据文件（用于获取ground truth）
                  默认值: "data/MMs2/test"
     
     --dataset-name: 数据集名称，需要在 class_prompts.json 中存在对应的配置
                     可选值: "ACDC", "CAMUS", "MMs2" 等
                     默认值: "MMs2"
     
-    --ckpt-path: 模型检查点文件路径
-                 默认值: "checkpoint/biomedparse_v2.ckpt"
+    --inference-dir: 推理结果目录路径，包含由 inference_v2.py 生成的预测结果文件
+                     默认值: "inference_results"
     
-    --output-name: 输出评估摘要的 JSON 文件名（可选）
-                   如果不指定，将使用 "{dataset_name}_eval_summary.json"
-                   输出文件将保存在 data/ 目录下
-    
-    --random-prompt: 启用随机 prompt 选择：每个样本的每个解剖区域都会独立地随机选择一个 prompt
-    --seed: 设置随机种子，确保结果可复现
+    --output-name: 输出评估摘要的 JSON 路径（可选）
+                   可指定完整路径如 gq_data/acdc/test/eval_results/acdc_v2.json，
+                   或仅文件名如 acdc_v2.json（则保存到 data/ 目录下）
 
 输出说明：
     脚本会生成一个 JSON 格式的评估摘要文件，包含：
@@ -42,44 +38,27 @@ BiomedParse 模型评估脚本
     - 对于 MMs2 数据集，脚本会自动过滤，只处理 SA（短轴）数据，跳过 LA（长轴）数据
     - 如果数据文件中包含 spacing 信息，将计算 HD95 和 NSD 指标
     - 如果数据文件中没有 spacing 信息，HD95 和 NSD 将显示为 N/A
-    - 默认情况下，如果某个类别有多个 prompt，脚本会使用第一个 prompt（所有样本使用相同的 prompt）
+    - 推理结果文件应与原始数据文件同名（例如：input.npz -> input.npz）
     
 示例：
-    CUDA_VISIBLE_DEVICES=1
-    # 评估 MMs2 数据集
-    python gq_scripts/evaluate_v2.py --data-root data/MMs2/test --dataset-name MMs2 --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt
-    
-    # 评估数据集并指定输出文件名
-    python gq_scripts/evaluate_v2.py --data-root data/ACDC/test --dataset-name ACDC --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt --output-name ACDC_eval_summary.json
-    python gq_scripts/evaluate_v2.py --data-root data/CAMUS/test --dataset-name CAMUS --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt --output-name CAMUS_eval_summary.json
-    
-    # 使用随机 prompt 选择（适用于有多 prompt 的数据集，如 ACDC_mul）
-    # 注意：每个样本的每个解剖区域都会独立地随机选择一个 prompt
-    python gq_scripts/evaluate.py --data-root data/ACDC/test --dataset-name ACDC_mul --ckpt-path checkpoint/biomedparse_v2.ckpt --random-prompt
-    
-    # 使用随机 prompt 选择并设置随机种子（确保结果可复现）
-    python gq_scripts/evaluate.py --data-root data/ACDC/test --dataset-name ACDC_mul --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt --random-prompt --seed 42
-    python gq_scripts/evaluate.py --data-root data/MMs2/test --dataset-name MMs2_mul --ckpt-path /home/gaoqi/official_ckpt/biomedparse/biomedparse_v2.ckpt --random-prompt --seed 42
+    # 评估 ACDC 数据集的推理结果
+    python gq_scripts/evaluate_v2.py \
+        --data-root gq_data/acdc/test \
+        --dataset-name ACDC \
+        --inference-dir gq_data/acdc/test/inference_results_v2 \
+        --output-name gq_data/acdc/test/eval_results/acdc_v2.json
 """
 
 import os
 import sys
 import glob
 import json
-import random
 import numpy as np
-import torch
-import torch.nn.functional as F
-import hydra
-from hydra import compose
-from hydra.core.global_hydra import GlobalHydra
 from scipy import ndimage
 
 # ensure repository root is on sys.path so top-level imports like `utils` work
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utils import process_input, process_output
-from inference import postprocess, merge_multiclass_masks
 from src.SurfaceDice import compute_surface_distances, compute_surface_dice_at_tolerance
 
 
@@ -126,40 +105,6 @@ def load_prompts(data_root, dataset_name="ACDC"):
         prompts_dict[i] = ds[str(i)]
     
     return ids, prompts_dict
-
-
-def select_prompts(prompts_dict, ids, random_select=False):
-    """
-    Select prompts for each class and combine them into a text string.
-    
-    Args:
-        prompts_dict: Dictionary mapping class ID to list of prompts
-        ids: List of class IDs
-        random_select: If True, randomly select one prompt from multiple prompts for each class.
-                       If False, use the first prompt (default behavior).
-    
-    Returns:
-        text: Combined text prompt string
-        selected_info: List of strings describing selected prompts (for logging)
-    """
-    texts = []
-    selected_info = []
-    
-    for i in ids:
-        prompts = prompts_dict[i]
-        if random_select and len(prompts) > 1:
-            # Randomly select one prompt from multiple prompts
-            selected_prompt = random.choice(prompts)
-            texts.append(selected_prompt)
-            selected_info.append(f"Class {i}: selected prompt {prompts.index(selected_prompt)+1}/{len(prompts)}")
-        else:
-            # Use first prompt (default behavior)
-            texts.append(prompts[0])
-            if len(prompts) > 1 and random_select:
-                selected_info.append(f"Class {i}: using first prompt (1/{len(prompts)})")
-    
-    text = "[SEP]".join(texts)
-    return text, selected_info
 
 
 def compute_hd95(pred_mask, gt_mask, spacing):
@@ -369,120 +314,42 @@ def compute_metrics(pred, gt, class_ids, spacing=None, nsd_tolerance=2.0):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Evaluate BiomedParse model on dataset")
+    parser = argparse.ArgumentParser(description="Evaluate BiomedParse model predictions on dataset")
     parser.add_argument("--data-root", type=str, default="data/MMs2/test",
-                        help="Path to dataset test directory containing .npz files")
+                        help="Path to dataset test directory containing .npz files (for ground truth)")
     parser.add_argument("--dataset-name", type=str, default="MMs2",
                         help="Dataset name in class_prompts.json (e.g., ACDC, CAMUS)")
-    parser.add_argument("--ckpt-path", type=str, default="checkpoint/biomedparse_v2.ckpt",
-                        help="Path to model checkpoint")
+    parser.add_argument("--inference-dir", type=str, default="inference_results",
+                        help="Directory containing inference results from inference_v2.py")
     parser.add_argument("--output-name", type=str, default=None,
-                        help="Output summary JSON filename (default: {dataset_name}_eval_summary.json)")
-    parser.add_argument("--random-prompt", action="store_true",
-                        help="Randomly select one prompt from multiple prompts for each class for EACH sample (if available)")
-    parser.add_argument("--seed", type=int, default=None,
-                        help="Random seed for prompt selection (for reproducibility)")
+                        help="Output JSON path; can be full path (e.g. gq_data/.../file.json) or filename (saved under data/)")
     args = parser.parse_args()
-    
-    # Set random seed if provided (for reproducibility)
-    if args.seed is not None:
-        random.seed(args.seed)
-        np.random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(args.seed)
     
     # paths
     data_root = args.data_root
-    ckpt_path = args.ckpt_path
+    inference_dir = args.inference_dir
     dataset_name = args.dataset_name
     output_name = args.output_name if args.output_name else f"{dataset_name}_eval_summary.json"
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Device:", device)
-
-    # load prompts dictionary
-    ids, prompts_dict = load_prompts(data_root, dataset_name=dataset_name)
+    # load prompts dictionary to get class IDs
+    ids, _ = load_prompts(data_root, dataset_name=dataset_name)
     print("Using class ids:", ids)
-    
-    # If random_select is False, select prompts once at the beginning
-    if not args.random_prompt:
-        text, _ = select_prompts(prompts_dict, ids, random_select=False)
-        print("Using fixed prompts (first prompt for each class)")
-    else:
-        print("Using random prompt selection (each sample will use independently selected prompts)")
 
-    # instantiate model via hydra
-    GlobalHydra.instance().clear()
-    # use absolute path to repo's configs/model to avoid relative lookup from scripts/
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    cfg_path = os.path.join(repo_root, 'configs', 'model')
-    # hydra.initialize requires a relative config_path; for an absolute path use initialize_config_dir
-    if os.path.isabs(cfg_path):
-        hydra.initialize_config_dir(config_dir=cfg_path, job_name="eval_acdc")
-    else:
-        hydra.initialize(config_path=cfg_path, job_name="eval_acdc")
-    cfg = compose(config_name="biomedparse_3D")
-
-    # Defensive: if tokenizer path in config is missing/None, fallback to local checkpoint folder
-    try:
-        tokval = cfg.sem_seg_head.predictor.language_encoder.tokenizer.pretrained_model_name_or_path
-    except Exception:
-        tokval = None
-    if tokval is None:
-        fallback = os.path.abspath(os.path.join(repo_root, 'checkpoint', 'clip-vit-base-patch32'))
-        print(f"Warning: tokenizer pretrained_model_name_or_path is None in config; falling back to {fallback}")
-        try:
-            cfg.sem_seg_head.predictor.language_encoder.tokenizer.pretrained_model_name_or_path = fallback
-        except Exception:
-            # last resort: set an environment variable that some code may respect
-            os.environ['PRETRAINED_TOKENIZER_FALLBACK'] = fallback
-
-    # Try to proactively load the tokenizer from the local path and monkeypatch AutoTokenizer
-    # This helps when transformers' CLIP tokenizer expects vocab files that the AutoTokenizer
-    # resolution path might not provide during Hydra instantiation.
-    try:
-        import transformers
-        from transformers import AutoTokenizer
-        local_tok_path = None
-        try:
-            local_tok_path = cfg.sem_seg_head.predictor.language_encoder.tokenizer.pretrained_model_name_or_path
-        except Exception:
-            local_tok_path = os.environ.get('PRETRAINED_TOKENIZER_FALLBACK', None)
-
-        if local_tok_path:
-            try:
-                # attempt local-only load
-                tok = AutoTokenizer.from_pretrained(local_tok_path, local_files_only=True)
-                print(f"Loaded tokenizer from local path: {local_tok_path}")
-
-                # monkeypatch AutoTokenizer.from_pretrained to return our tokenizer when called
-                _orig_atfp = transformers.AutoTokenizer.from_pretrained
-                def _patched_atfp(pretrained_model_name_or_path, *a, **kw):
-                    if pretrained_model_name_or_path in (local_tok_path, 'openai/clip-vit-base-patch32'):
-                        return tok
-                    return _orig_atfp(pretrained_model_name_or_path, *a, **kw)
-
-                transformers.AutoTokenizer.from_pretrained = _patched_atfp
-            except Exception as e:
-                print(f"Warning: failed to load tokenizer locally from {local_tok_path}: {e}")
-    except Exception as e:
-        print(f"Warning: transformers not available or failed to prepare local tokenizer patch: {e}")
-
-    model = hydra.utils.instantiate(cfg, _convert_="object")
-    model.load_pretrained(ckpt_path)
-    model = model.to(device).eval()
-
-    npz_files = sorted(glob.glob(os.path.join(data_root, "*.npz")))
+    # Get list of ground truth files
+    gt_files = sorted(glob.glob(os.path.join(data_root, "*.npz")))
     
     # For MMs2 dataset, only process SA (Short Axis) data, skip LA (Long Axis) data
     if dataset_name.startswith("MMs2"):
-        npz_files = [f for f in npz_files if "_SA_" in os.path.basename(f)]
-        print(f"Filtered to SA files only: {len(npz_files)} files remaining")
+        gt_files = [f for f in gt_files if "_SA_" in os.path.basename(f)]
+        print(f"Filtered to SA files only: {len(gt_files)} files remaining")
     
-    if len(npz_files) == 0:
+    if len(gt_files) == 0:
         print("No .npz files found in", data_root)
         return
+
+    # Check inference directory exists
+    if not os.path.exists(inference_dir):
+        raise FileNotFoundError(f"Inference directory not found: {inference_dir}")
 
     all_per_class = {c: {"dice": [], "iou": [], "hd95": [], "nsd": []} for c in ids}
     overall_dice_list = []
@@ -491,47 +358,50 @@ def main():
     overall_nsd_list = []
     per_patient = {}
 
-    for p in npz_files:
-        name = os.path.basename(p)
-        d = np.load(p, allow_pickle=True)
-        imgs = d["imgs"]  # (D,H,W)
-        gts = d["gts"]
-        # Get spacing if available
+    for gt_file in gt_files:
+        name = os.path.basename(gt_file)
+        
+        # Load ground truth
+        gt_data = np.load(gt_file, allow_pickle=True)
+        gts = gt_data["gts"]
+        
+        # Get spacing if available (from ground truth file)
         spacing = None
-        if "spacing" in d:
-            spacing_val = d["spacing"]
+        if "spacing" in gt_data:
+            spacing_val = gt_data["spacing"]
             # Handle both array and tuple formats
             if isinstance(spacing_val, (np.ndarray, list, tuple)):
                 spacing = tuple(spacing_val)  # (D,H,W) order
             else:
                 spacing = tuple([spacing_val] * 3)  # fallback: assume isotropic
-
-        # Select prompts for this sample (if random_select is enabled)
-        if args.random_prompt:
-            sample_text, selected_info = select_prompts(prompts_dict, ids, random_select=True)
-            if selected_info:
-                print(f"  {name} prompt selection:")
-                for info in selected_info:
-                    print(f"    {info}")
-        else:
-            sample_text = text
         
-        # prepare input
-        imgs_proc, pad_width, padded_size, valid_axis = process_input(imgs, 512)
-        imgs_proc = imgs_proc.to(device).int()
-        input_tensor = {"image": imgs_proc.unsqueeze(0), "text": [sample_text]}
-
-        with torch.no_grad():
-            output = model(input_tensor, mode="eval", slice_batch_size=4)
-
-        mask_preds = output["predictions"]["pred_gmasks"]
-        # resize to 512
-        mask_preds = F.interpolate(mask_preds, size=(512, 512), mode="bicubic", align_corners=False, antialias=True)
-        mask_preds = postprocess(mask_preds, output["predictions"]["object_existence"])
-        mask_preds = merge_multiclass_masks(mask_preds, ids)
-        mask_preds = process_output(mask_preds, pad_width, padded_size, valid_axis)
-
-        pred = mask_preds  # expected (D,H,W) int map
+        # Load prediction from inference directory
+        pred_file = os.path.join(inference_dir, name)
+        if not os.path.exists(pred_file):
+            print(f"Warning: Prediction file not found: {pred_file}, skipping {name}")
+            continue
+        
+        pred_data = np.load(pred_file, allow_pickle=True)
+        if "pred_mask" not in pred_data:
+            print(f"Warning: 'pred_mask' not found in {pred_file}, skipping {name}")
+            continue
+        
+        pred = pred_data["pred_mask"]  # expected (D,H,W) int map
+        
+        # If spacing is not in GT file, try to get it from prediction file
+        if spacing is None and "spacing" in pred_data:
+            spacing_val = pred_data["spacing"]
+            if isinstance(spacing_val, (np.ndarray, list, tuple)):
+                spacing = tuple(spacing_val)
+            else:
+                spacing = tuple([spacing_val] * 3)
+        
+        # Verify class IDs match
+        if "class_ids" in pred_data:
+            pred_class_ids = pred_data["class_ids"]
+            if not np.array_equal(np.sort(pred_class_ids), np.sort(ids)):
+                print(f"Warning: Class IDs mismatch for {name}. Expected {ids}, got {pred_class_ids}")
+        
         gt = gts
 
         per_class, overall_dice, overall_iou, overall_hd95, overall_nsd = compute_metrics(pred, gt, ids, spacing=spacing)
@@ -577,6 +447,8 @@ def main():
         hd95_str = f", HD95={overall_hd95:.4f}" if not (np.isnan(overall_hd95) or np.isinf(overall_hd95)) else ", HD95=N/A"
         nsd_str = f", NSD={overall_nsd:.4f}" if not np.isnan(overall_nsd) else ", NSD=N/A"
         print(f"{name}: overall Dice={overall_dice:.4f}, IoU={overall_iou:.4f}{hd95_str}{nsd_str}")
+    
+    print(f"\nEvaluated {len(per_patient)} samples")
 
     # summarize
     summary = {}
@@ -628,12 +500,19 @@ def main():
     print(f"\nOverall mean: Dice={overall['dice_mean']:.4f}, IoU={overall['iou_mean']:.4f}{hd95_overall_str}{nsd_overall_str}")
 
     # save summary including per-patient results
-    outp = os.path.join("data", output_name)
+    # If output_name contains path (e.g. gq_data/.../file.json), use it directly; else save under data/
+    if os.path.isabs(output_name) or os.path.dirname(output_name):
+        outp = output_name
+    else:
+        outp = os.path.join("data", output_name)
+    out_dir = os.path.dirname(outp)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
     output_dict = {
         "per_class": summary,
         "overall": overall,
         "per_patient": per_patient,
-        "n_cases": len(npz_files)
+        "n_cases": len(per_patient)
     }
     with open(outp, "w") as f:
         json.dump(output_dict, f, indent=2)
