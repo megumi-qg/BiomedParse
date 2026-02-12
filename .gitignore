@@ -122,4 +122,4 @@ output
 .amlignore*
 model_weights
 
-data/**/*.npz
+gq_data/**/*.npz

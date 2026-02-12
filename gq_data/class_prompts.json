@@ -1,0 +1,121 @@
+{
+  "ACDC": {
+    "1": [
+      "Right ventricle cavity"
+    ],
+    "2": [
+      "Myocardium"
+    ],
+    "3": [
+      "Left ventricle cavity"
+    ],
+    "instance_label": 0
+  },
+  "ACDC_mul": {
+    "1": [
+      "Right ventricle cavity in cardiac MRI",
+      "Right ventricular blood pool in cine-MRI",
+      "RV cavity in magnetic resonance imaging",
+      "Right ventricle chamber in short-axis MRI",
+      "Right ventricle endocardium in cardiac MRI"
+    ],
+    "2": [
+      "Left ventricular myocardium in cardiac MRI",
+      "Left ventricular muscle in MRI",
+      "Ring-shaped myocardium muscle in short-axis MRI",
+      "LV myocardium in cine-MRI",
+      "Left ventricular epicardium in cardiac MRI"
+    ],
+    "3": [
+      "Left ventricle cavity in cardiac MRI",
+      "Left ventricular blood pool in cine-MRI",
+      "LV cavity in magnetic resonance imaging",
+      "Left ventricle chamber in short-axis MRI",
+      "Left ventricle endocardium in cardiac MRI"
+    ],
+    "instance_label": 0
+  },
+  "CAMUS": {
+    "1": [
+      "Left Ventricle"
+    ],
+    "2": [
+      "Myocardium"
+    ],
+    "3": [
+      "Left Atrium"
+    ],
+    "instance_label": 0
+  },
+  "CAMUS_mul": {
+    "1": [
+      "Left ventricle cavity in echocardiography",
+      "Anechoic LV blood pool in ultrasound",
+      "Left ventricle in apical view ultrasound",
+      "Left ventricle endocardium in echocardiography",
+      "Left ventricular internal region in ultrasound"
+    ],
+    "2": [
+      "Left ventricular myocardium in echocardiography",
+      "U-shaped myocardial wall in apical view",
+      "Hyperechoic LV muscle tissue in ultrasound",
+      "Myocardium surrounding the left ventricle in echocardiography",
+      "Left ventricular epicardium in ultrasound"
+    ],
+    "3": [
+      "Left atrium cavity in echocardiography",
+      "Anechoic left atrial blood pool in apical view",
+      "LA cavity in transthoracic echocardiography",
+      "Left atrium endocardium in ultrasound",
+      "Left atrium chamber in echocardiography"
+    ],
+    "instance_label": 0
+  },
+  "MMs2": {
+    "1": [
+      "Left ventricle cavity"
+    ],
+    "2": [
+      "Myocardium"
+    ],
+    "3": [
+      "Right ventricle cavity"
+    ],
+    "instance_label": 0
+  },
+  "MMs2_mul": {
+    "1": [
+      "Left ventricle cavity in cardiac MRI",
+      "Left ventricular blood pool in cine-MRI",
+      "LV cavity in magnetic resonance imaging",
+      "Left ventricle chamber in short-axis MRI",
+      "Left ventricle endocardium in cardiac MRI"
+    ],
+    "2": [
+      "Left ventricular myocardium in cardiac MRI",
+      "Left ventricular muscle in MRI",
+      "Ring-shaped myocardium muscle in short-axis MRI",
+      "LV myocardium in cine-MRI",
+      "Left ventricular epicardium in cardiac MRI"
+    ],
+    "3": [
+      "Right ventricle cavity in cardiac MRI",
+      "Right ventricular blood pool in cine-MRI",
+      "RV cavity in magnetic resonance imaging",
+      "Right ventricle chamber in short-axis MRI",
+      "Right ventricle endocardium in cardiac MRI"
+    ],
+    "instance_label": 0
+  },
+  "BTCV_cervix": {
+    "1": ["Bladder"],
+    "2": ["Uterus"],
+    "3": ["Rectum"],
+    "4": ["Small bowel"],
+    "instance_label": 0
+  },
+  "PROMISE12": {
+    "1": ["Prostate"],
+    "instance_label": 0
+  }
+}
